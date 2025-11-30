@@ -1,18 +1,129 @@
+'use client';
+
 /**
  * Nutrition Page
- * Food logging and calorie tracking
+ * Main page for nutrition tracking with tabbed interface
+ * Follows Single Responsibility Principle - orchestrates nutrition components
  */
 
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { PageLayout } from '@/components/common/PageLayout';
+import { FoodLogger } from '@/components/nutrition/FoodLogger';
+import { DailyNutritionSummary } from '@/components/nutrition/DailyNutritionSummary';
+import { NutritionHistory } from '@/components/nutrition/NutritionHistory';
+import { useFoods } from '@/hooks/useFoods';
+import { useSettings } from '@/hooks/useSettings';
+import type { FoodEntry } from '@/core/domain/Food';
+
+type Tab = 'today' | 'history';
 
 export default function NutritionPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('today');
+  const [showLogger, setShowLogger] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+
+  const { foods, isLoading, error, addFood, updateFood, deleteFood } = useFoods();
+  const { settings } = useSettings();
+
+  const handleSubmit = async (food: FoodEntry) => {
+    try {
+      await addFood(food);
+      setShowLogger(false);
+      setSelectedFood(null);
+    } catch (err) {
+      console.error('Failed to save food:', err);
+    }
+  };
+
+  const handleEdit = async (food: FoodEntry) => {
+    // For now, editing creates a new entry with the same data
+    // In future, we could implement true editing
+    await deleteFood(food.id);
+    // Could pre-populate form here if we had editing support
+  };
+
+  const handleCancel = () => {
+    setShowLogger(false);
+    setSelectedFood(null);
+  };
+
+  const tabs = [
+    { id: 'today' as Tab, label: 'Today' },
+    { id: 'history' as Tab, label: 'History' },
+  ];
+
+  const headerAction = (
+    <button
+      onClick={() => setShowLogger(true)}
+      className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700"
+      aria-label="Log food"
+    >
+      <Plus className="w-5 h-5" />
+    </button>
+  );
+
   return (
-    <PageLayout title="Nutrition">
-      <div className="p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400">Nutrition tracking coming soon...</p>
+    <>
+      <PageLayout title="Nutrition" headerAction={headerAction}>
+        <div className="flex flex-col h-full">
+          {/* Tab Navigation */}
+          <div className="sticky top-14 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10">
+            <div className="flex">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="m-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-gray-500 dark:text-gray-400">Loading...</div>
+            </div>
+          ) : (
+            /* Tab Content */
+            <div className="flex-1 overflow-y-auto p-4">
+              {activeTab === 'today' && (
+                <DailyNutritionSummary
+                  foods={foods}
+                  dailyCalorieGoal={settings?.dailyCalorieGoal || 2000}
+                  onEditFood={handleEdit}
+                  onDeleteFood={deleteFood}
+                />
+              )}
+
+              {activeTab === 'history' && <NutritionHistory foods={foods} />}
+            </div>
+          )}
         </div>
-      </div>
-    </PageLayout>
+      </PageLayout>
+
+      {/* Food Logger Modal */}
+      {showLogger && (
+        <FoodLogger
+          selectedFood={selectedFood}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+        />
+      )}
+    </>
   );
 }
