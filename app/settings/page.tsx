@@ -6,7 +6,7 @@
  * Follows Single Responsibility Principle - orchestrates settings components
  */
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Save,
   Download,
@@ -28,23 +28,21 @@ export default function SettingsPage() {
   const { exportToFile, importFromFile, clearAllData, isExporting, isImporting } =
     useDataExport();
 
-  const [dailyCalorieGoal, setDailyCalorieGoal] = useState(
-    settings?.dailyCalorieGoal.toString() || '2000'
-  );
-  const [weightUnit, setWeightUnit] = useState<WeightUnit>(settings?.weightUnit || 'lbs');
-  const [theme, setTheme] = useState<Theme>(settings?.theme || 'system');
+  const [dailyCalorieGoal, setDailyCalorieGoal] = useState('2000');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
+  const [theme, setTheme] = useState<Theme>('system');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update local state when settings load
-  useState(() => {
+  useEffect(() => {
     if (settings) {
       setDailyCalorieGoal(settings.dailyCalorieGoal.toString());
       setWeightUnit(settings.weightUnit);
       setTheme(settings.theme);
     }
-  });
+  }, [settings]);
 
   const handleSaveSettings = async () => {
     try {
