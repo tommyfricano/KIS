@@ -7,24 +7,43 @@
  */
 
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { PageLayout } from '@/components/common/PageLayout';
+import { FoodSearch } from '@/components/nutrition/FoodSearch';
 import { FoodLogger } from '@/components/nutrition/FoodLogger';
 import { DailyNutritionSummary } from '@/components/nutrition/DailyNutritionSummary';
 import { NutritionHistory } from '@/components/nutrition/NutritionHistory';
 import { useFoods } from '@/hooks/useFoods';
 import { useSettings } from '@/hooks/useSettings';
 import type { FoodEntry } from '@/core/domain/Food';
+import type { FoodSearchResult } from '@/infrastructure/api/foodDataAPI';
 
 type Tab = 'today' | 'history';
 
 export default function NutritionPage() {
   const [activeTab, setActiveTab] = useState<Tab>('today');
+  const [showSearch, setShowSearch] = useState(false);
   const [showLogger, setShowLogger] = useState(false);
-  const [selectedFood, setSelectedFood] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState<FoodSearchResult | null>(null);
 
   const { foods, isLoading, error, addFood, updateFood, deleteFood } = useFoods();
   const { settings } = useSettings();
+
+  const handleAddClick = () => {
+    setShowSearch(true);
+  };
+
+  const handleSelectFood = (food: FoodSearchResult) => {
+    setSelectedFood(food);
+    setShowSearch(false);
+    setShowLogger(true);
+  };
+
+  const handleManualEntry = () => {
+    setSelectedFood(null);
+    setShowSearch(false);
+    setShowLogger(true);
+  };
 
   const handleSubmit = async (food: FoodEntry) => {
     try {
@@ -44,6 +63,7 @@ export default function NutritionPage() {
   };
 
   const handleCancel = () => {
+    setShowSearch(false);
     setShowLogger(false);
     setSelectedFood(null);
   };
@@ -55,9 +75,9 @@ export default function NutritionPage() {
 
   const headerAction = (
     <button
-      onClick={() => setShowLogger(true)}
+      onClick={handleAddClick}
       className="p-2 bg-primary-600 text-white rounded-full hover:bg-primary-700"
-      aria-label="Log food"
+      aria-label="Add food"
     >
       <Plus className="w-5 h-5" />
     </button>
@@ -115,6 +135,30 @@ export default function NutritionPage() {
           )}
         </div>
       </PageLayout>
+
+      {/* Food Search Modal */}
+      {showSearch && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 w-full sm:max-w-lg sm:rounded-lg max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Search Food</h2>
+              <button
+                onClick={handleCancel}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                aria-label="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search Content */}
+            <div className="p-4">
+              <FoodSearch onSelectFood={handleSelectFood} onManualEntry={handleManualEntry} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Food Logger Modal */}
       {showLogger && (
