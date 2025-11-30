@@ -43,8 +43,13 @@ export class UserSettingsRepository implements IUserSettingsRepository {
 
     if (!item) {
       // Initialize with defaults if not found
-      await this.update(DEFAULT_USER_SETTINGS);
-      return DEFAULT_USER_SETTINGS;
+      const defaultSettings = {
+        ...DEFAULT_USER_SETTINGS,
+        updatedAt: new Date(),
+      };
+      const serialized = this.serialize(defaultSettings);
+      await db.update(this.storeName, serialized);
+      return defaultSettings;
     }
 
     return this.deserialize(item);
